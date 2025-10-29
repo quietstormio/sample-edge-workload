@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: edge-ml-shared-pv
+spec:
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""  # Empty means default storage class
+  hostPath:
+    path: /mnt/data/yolo  # Path on the node
+    type: DirectoryOrCreate
+
+---
+# Updated PVC to bind to the specific PV
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-ml-shared-pvc
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""  # Must match PV
+  resources:
+    requests:
+      storage: 3Gi
+  volumeName: edge-ml-shared-pv  # Bind to specific PV

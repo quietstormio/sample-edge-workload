@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-inference-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: edge-inference
+  ports:
+  - protocol: TCP
+    port: 6767
+    targetPort: 6767
+    nodePort: 30767  # Accessible externally on this port
+  type: NodePort

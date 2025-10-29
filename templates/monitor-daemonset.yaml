@@ -1,0 +1,120 @@
+# Kubernetes DaemonSet Configuration:
+# This ensures that one copy of the network monitor pod runs on each
+# eligible node in the cluster (or specific nodes if using nodeSelector).
+# Its job is to check network connectivity and apply the appropriate label
+# (`online` or `offline`) to the node it's running on.
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: edge-ml-monitor-daemonset
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: edge-ml-app
+    component: monitor
+    instance: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: edge-ml-app
+      component: monitor
+      instance: {{ .Release.Name }}
+  # Pod template definition
+  template:
+    metadata:
+      # Labels applied to the pods created by this DaemonSet
+      labels:
+        app: edge-ml-app
+        component: monitor
+        instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: edge-ml-monitor-sa
+      # Want to use the edge devices networking for gateway access
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet # Required when hostNetwork is true
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: network-monitor
+        # Image defined in values.yaml
+        image: "{{ .Values.monitor.image.repository }}:{{ .Values.monitor.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+        env:
+        # Pass the node name the pod is running on as an env var
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # Pass configuration from values.yaml as env vars
+        - name: HEARTBEAT_IP
+          value: {{ .Values.monitor.heartbeatIp | quote }}
+        - name: NODE_LABEL_KEY
+          value: {{ .Values.monitor.nodeLabelKey | quote }}
+        - name: CHECK_INTERVAL_SECONDS
+          value: {{ .Values.monitor.checkIntervalSeconds | quote }}
+
+        # --- THIS IS THE MISSING SCRIPT ---
+        # Command to run the monitoring loop
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # Install ping utility using Alpine package manager
+            if ! command -v ping &> /dev/null; then
+              echo "Installing iputils-ping..."
+              apk add --no-cache iputils
+            fi
+
+            # Configure kubectl to use localhost API server (for hostNetwork pods in k3s)
+            # Override the cluster service IP with localhost since we're on hostNetwork
+            export KUBERNETES_SERVICE_HOST="127.0.0.1"
+            export KUBERNETES_SERVICE_PORT="6443"
+
+            # Ensure kubectl and ping are available
+            KUBECTL_CMD="kubectl"
+            PING_CMD="ping"
+
+            if ! command -v $KUBECTL_CMD &> /dev/null; then
+              echo "Error: kubectl command not found. Exiting."
+              exit 1
+            fi
+            if ! command -v $PING_CMD &> /dev/null; then
+              echo "Error: ping command not found. Exiting."
+              exit 1
+            fi
+
+            echo "Starting network monitor for IP: $HEARTBEAT_IP on node: $NODE_NAME";
+            echo "Using label key: $NODE_LABEL_KEY";
+
+            # Initial check and label setting before loop starts
+            echo "Performing initial network check...";
+            if $PING_CMD -c 1 -W 1 $HEARTBEAT_IP > /dev/null; then
+              echo "Initial state: ONLINE. Setting label $NODE_LABEL_KEY=online";
+              $KUBECTL_CMD label node $NODE_NAME $NODE_LABEL_KEY=online --overwrite || echo "Failed to set initial online label";
+            else
+              echo "Initial state: OFFLINE. Setting label $NODE_LABEL_KEY=offline";
+              $KUBECTL_CMD label node $NODE_NAME $NODE_LABEL_KEY=offline --overwrite || echo "Failed to set initial offline label";
+            fi
+
+            # Continuous monitoring loop
+            while true; do
+              echo "Sleeping for $CHECK_INTERVAL_SECONDS seconds...";
+              sleep $CHECK_INTERVAL_SECONDS;
+              echo "Checking network connectivity to $HEARTBEAT_IP...";
+              if $PING_CMD -c 1 -W 1 $HEARTBEAT_IP > /dev/null; then
+                CURRENT_LABEL=$($KUBECTL_CMD get node $NODE_NAME --ignore-not-found=true -o jsonpath="{.metadata.labels.$NODE_LABEL_KEY}" || echo "unknown");
+                if [ "$CURRENT_LABEL" != "online" ]; then
+                  echo "Network ONLINE. Updating node label $NODE_LABEL_KEY=online";
+                  $KUBECTL_CMD label node $NODE_NAME $NODE_LABEL_KEY=online --overwrite || echo "Failed to set online label";
+                else
+                  echo "Network ONLINE. Node label already correct.";
+                fi
+              else
+                CURRENT_LABEL=$($KUBECTL_CMD get node $NODE_NAME --ignore-not-found=true -o jsonpath="{.metadata.labels.$NODE_LABEL_KEY}" || echo "unknown");
+                if [ "$CURRENT_LABEL" != "offline" ]; then
+                  echo "Network OFFLINE. Updating node label $NODE_LABEL_KEY=offline";
+                  $KUBECTL_CMD label node $NODE_NAME $NODE_LABEL_KEY=offline --overwrite || echo "Failed to set offline label";
+                else
+                   echo "Network OFFLINE. Node label already correct.";
+                fi
+              fi
+            done
+        # --- END OF SCRIPT ---

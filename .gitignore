@@ -1,0 +1,53 @@
+# Deployment and documentation files
+DEPLOYMENT.md
+CLAUDE.md
+
+# Model files (large - transfer separately)
+yolov8n.pt
+*.pt
+
+# Docker image tars (large)
+*.tar
+*.tar.gz
+edge-trainer.tar
+edge-inference.tar
+sp-edge-ml-deployment.tar.gz
+helm-chart.tar.gz
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+webui
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+/tmp/
+*.log
+
+# Training outputs (generated on nodes)
+training_runs/
+runs/
+
+# Uploaded images (generated on nodes)
+uploads/

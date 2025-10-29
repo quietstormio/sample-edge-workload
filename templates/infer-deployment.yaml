@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-inference
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-inference
+  template:
+    metadata:
+      labels:
+        app: edge-inference
+    spec:
+      serviceAccountName: edge-inference-sa
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: inference
+        image: edge-inference:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_DIR
+          value: "/data/models"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_LABEL_KEY
+          value: {{ .Values.monitor.nodeLabelKey | quote }}
+        - name: KUBERNETES_SERVICE_HOST
+          value: "127.0.0.1"
+        - name: KUBERNETES_SERVICE_PORT
+          value: "6443"
+        ports:
+        - containerPort: 6767
+          name: http
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+          readOnly: true  # Inference only reads
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 6767
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 6767
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: edge-ml-shared-pvc

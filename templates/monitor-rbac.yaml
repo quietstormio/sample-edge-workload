@@ -1,0 +1,50 @@
+# Kubernetes RBAC Configuration:
+# Defines permissions for the network monitor pod to label the node.
+# - ServiceAccount (`sp-edge-ml-monitor-sa`): Identity for the pod ("who").
+# - ClusterRole (`sp-edge-ml-monitor-node-labeler-role`): Permissions
+#   cluster-wide ("what" - label nodes).
+# - ClusterRoleBinding (`sp-edge-ml-monitor-node-labeler-binding`): Links the
+#   ServiceAccount to the ClusterRole ("how").
+# This allows the monitor pod to update node labels based on network status.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-ml-monitor-sa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: edge-ml-app
+    component: monitor
+    instance: {{ .Release.Name }}
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-ml-monitor-node-labeler-role
+  labels:
+    app: edge-ml-app
+    component: monitor
+rules:
+  - apiGroups: [""] 
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch", "update"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-ml-monitor-node-labeler-binding
+  labels:
+    app: edge-ml-app
+    component: monitor
+subjects:
+  - kind: ServiceAccount
+    name: edge-ml-monitor-sa
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: edge-ml-monitor-node-labeler-role
+  apiGroup: rbac.authorization.k8s.io

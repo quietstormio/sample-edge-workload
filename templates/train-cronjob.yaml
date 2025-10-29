@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: edge-training-job
+  namespace: {{ .Release.Namespace }}
+spec:
+  # Run every 3 hours
+  schedule: "0 */3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: edge-training-job
+        spec:
+          restartPolicy: OnFailure
+          # Only run training on nodes with gateway connectivity
+          nodeSelector:
+            {{ .Values.monitor.nodeLabelKey }}: online
+          containers:
+          - name: edge-trainer
+            image: edge-trainer:latest
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: TRAINING_DIR
+              value: "/data/training"
+            - name: MODEL_DIR
+              value: "/data/models"
+            - name: EPOCHS
+              value: "20"
+            - name: BATCH_SIZE
+              value: "4"
+            - name: DEVICE
+              value: "cpu"
+            volumeMounts:
+            - name: shared-data
+              mountPath: /data
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1000m"
+              limits:
+                memory: "4Gi"
+                cpu: "2000m"
+          volumes:
+          - name: shared-data
+            persistentVolumeClaim:
+              claimName: edge-ml-shared-pvc
