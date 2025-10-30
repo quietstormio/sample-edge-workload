@@ -75,35 +75,42 @@ def train_model():
     
     # Generate version timestamp
     version = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Copy best model to shared location with version
-    versioned_model = f'{MODEL_DIR}/model_{version}.pt'
-    latest_model = f'{MODEL_DIR}/latest.pt'
-    
-    # Save versioned model
+
+    # Save to edge_trained directory for gateway sync (not production model)
     import shutil
-    shutil.copy(best_model_path, versioned_model)
-    shutil.copy(best_model_path, latest_model)
-    
-    # Save metadata
+    edge_trained_dir = f'{MODEL_DIR}/edge_trained'
+    Path(edge_trained_dir).mkdir(parents=True, exist_ok=True)
+
+    # Save edge-trained model (specialized for this environment)
+    edge_model_path = f'{edge_trained_dir}/edge_{version}.pt'
+    shutil.copy(best_model_path, edge_model_path)
+
+    # Save metadata for gateway aggregation
+    node_id = os.getenv('NODE_NAME', 'unknown')
     metadata = {
         'version': version,
+        'node_id': node_id,
         'trained_at': datetime.now().isoformat(),
         'num_images': len(images),
         'epochs': EPOCHS,
         'training_time_seconds': training_time,
-        'model_path': versioned_model
+        'model_path': edge_model_path
     }
-    
-    with open(f'{MODEL_DIR}/latest_metadata.json', 'w') as f:
+
+    # Create metadata directory
+    metadata_dir = f'{edge_trained_dir}/metadata'
+    Path(metadata_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(f'{metadata_dir}/edge_{version}.json', 'w') as f:
         json.dump(metadata, f, indent=2)
     
     print("="*60)
     print(f"✓ Training complete!")
+    print(f"  Node: {node_id}")
     print(f"  Version: {version}")
     print(f"  Training time: {training_time:.2f}s")
-    print(f"  Model saved to: {versioned_model}")
-    print(f"  Latest model: {latest_model}")
+    print(f"  Edge model saved to: {edge_model_path}")
+    print(f"  (Ready for gateway sync)")
     print("="*60)
     
     return True

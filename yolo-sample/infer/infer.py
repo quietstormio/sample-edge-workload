@@ -13,11 +13,15 @@ import os
 MODEL_DIR = os.getenv('MODEL_DIR', './models')
 
 def load_model():
-    """Load the latest model"""
-    model_path = f'{MODEL_DIR}/latest.pt'
+    """Load the production model (aggregated from gateway)"""
+    # Use production model (good at everything) instead of local trained model
+    model_path = f'{MODEL_DIR}/production.pt'
 
     if not Path(model_path).exists():
-        return None, f"No model found at {model_path}"
+        # Fallback to base model if production doesn't exist yet
+        model_path = f'{MODEL_DIR}/yolov8n.pt'
+        if not Path(model_path).exists():
+            return None, f"No model found at {model_path}"
 
     try:
         model = YOLO(model_path)

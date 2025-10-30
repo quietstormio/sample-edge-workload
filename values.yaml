@@ -8,7 +8,7 @@ monitor:
     repository: alpine/k8s # Alpine-based image with kubectl
     tag: "1.28.3"
   checkIntervalSeconds: 15
-  heartbeatIp: "54.172.175.64" # Gateway instance
+  heartbeatIp: "18.208.162.218" # Gateway instance
   nodeLabelKey: "myapp.com/network-status"
   # Optional: nodeSelector if needed later
   # nodeSelector: {}

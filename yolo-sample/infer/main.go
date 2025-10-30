@@ -171,10 +171,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             border-left: 4px solid #d32f2f;
         }
         .status-bar {
-            background: white;
-            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
@@ -183,30 +183,94 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
         .status-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         .status-indicator {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             display: inline-block;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
         }
         .status-indicator.online {
             background-color: #4CAF50;
+            animation: pulse-green 2s infinite;
         }
         .status-indicator.offline {
             background-color: #f44336;
+            animation: pulse-red 2s infinite;
         }
         .status-indicator.unknown {
             background-color: #ff9800;
+            animation: pulse-orange 2s infinite;
+        }
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 8px rgba(76, 175, 80, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(76, 175, 80, 0.8); }
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 8px rgba(244, 67, 54, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(244, 67, 54, 0.8); }
+        }
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 0 8px rgba(255, 152, 0, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(255, 152, 0, 0.8); }
         }
         .status-label {
             font-weight: bold;
-            font-size: 14px;
+            font-size: 15px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         .training-status {
             font-size: 14px;
-            color: #666;
+            color: rgba(255,255,255,0.95);
+            font-weight: 500;
+        }
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .spinner-overlay.active {
+            display: flex;
+        }
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .manual-train-btn {
+            background-color: #9e9e9e;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: not-allowed;
+            font-size: 14px;
+            margin-top: 20px;
+            opacity: 0.6;
         }
     </style>
 </head>
@@ -223,12 +287,27 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
     </div>
     <div class="upload-form">
         <h2>Upload an Image</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
             <input type="file" name="image" accept="image/*" required>
             <br>
             <button type="submit">Run Inference</button>
         </form>
+        <button class="manual-train-btn" disabled title="Coming soon: Manual training trigger">
+            Trigger Training (Disabled)
+        </button>
     </div>
+
+    <!-- Spinner overlay -->
+    <div class="spinner-overlay" id="spinnerOverlay">
+        <div class="spinner"></div>
+        <div class="spinner-text">Running inference...</div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            document.getElementById('spinnerOverlay').classList.add('active');
+        });
+    </script>
 </body>
 </html>
 `
@@ -422,10 +501,10 @@ func renderResults(w http.ResponseWriter, status SystemStatus, result InferenceR
             font-size: 14px;
         }
         .status-bar {
-            background: white;
-            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
@@ -434,30 +513,94 @@ func renderResults(w http.ResponseWriter, status SystemStatus, result InferenceR
         .status-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         .status-indicator {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             display: inline-block;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
         }
         .status-indicator.online {
             background-color: #4CAF50;
+            animation: pulse-green 2s infinite;
         }
         .status-indicator.offline {
             background-color: #f44336;
+            animation: pulse-red 2s infinite;
         }
         .status-indicator.unknown {
             background-color: #ff9800;
+            animation: pulse-orange 2s infinite;
+        }
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 8px rgba(76, 175, 80, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(76, 175, 80, 0.8); }
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 8px rgba(244, 67, 54, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(244, 67, 54, 0.8); }
+        }
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 0 8px rgba(255, 152, 0, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(255, 152, 0, 0.8); }
         }
         .status-label {
             font-weight: bold;
-            font-size: 14px;
+            font-size: 15px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         .training-status {
             font-size: 14px;
-            color: #666;
+            color: rgba(255,255,255,0.95);
+            font-weight: 500;
+        }
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .spinner-overlay.active {
+            display: flex;
+        }
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .manual-train-btn {
+            background-color: #9e9e9e;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: not-allowed;
+            font-size: 14px;
+            margin-top: 20px;
+            opacity: 0.6;
         }
     </style>
 </head>
