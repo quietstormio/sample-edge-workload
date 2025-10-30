@@ -1,3 +1,9 @@
+# NOTE: This ingress is deployed but NOT currently being used for access
+# Current access method: Direct connection to host:6767 (via hostNetwork: true in deployment)
+# This ingress is maintained for future use when we:
+#   1. Remove hostNetwork: true from the deployment
+#   2. Enable proper ingress controller (Traefik)
+#   3. Add TLS termination and domain routing
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

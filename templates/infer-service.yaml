@@ -10,5 +10,9 @@ spec:
   - protocol: TCP
     port: 6767
     targetPort: 6767
-    nodePort: 30767  # Accessible externally on this port
+    nodePort: 30767  # NodePort not currently used due to hostNetwork: true
   type: NodePort
+  # NOTE: This service is not actively being used for external access right now
+  # The deployment uses hostNetwork: true, so traffic goes directly to host:6767
+  # This service is still deployed for future ingress integration and internal cluster routing
+  # Future: Ingress will route through this service once hostNetwork is removed

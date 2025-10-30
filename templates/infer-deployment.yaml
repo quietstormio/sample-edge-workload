@@ -14,6 +14,10 @@ spec:
         app: edge-inference
     spec:
       serviceAccountName: edge-inference-sa
+      # NOTE: hostNetwork: true means the pod uses the host's network namespace directly
+      # This allows direct access on host:6767 without needing NodePort or Ingress
+      # Currently accessing via: http://<node-ip>:6767
+      # Future: Will migrate to Ingress for proper routing and TLS termination
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
