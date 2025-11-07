@@ -40,7 +40,7 @@ def train_model():
     print("="*60)
 
     # Load existing model from shared storage (or use yolov8n.pt as fallback)
-    base_model_path = f'{MODEL_DIR}/latest.pt'
+    base_model_path = f'{MODEL_DIR}/production.pt'
     if not Path(base_model_path).exists():
         print(f"WARNING: {base_model_path} not found, using yolov8n.pt")
         base_model_path = 'yolov8n.pt'
@@ -103,14 +103,18 @@ def train_model():
 
     with open(f'{metadata_dir}/edge_{version}.json', 'w') as f:
         json.dump(metadata, f, indent=2)
-    
+
     print("="*60)
-    print(f"✓ Training complete!")
+    print(f"✓ Federated Training Complete!")
     print(f"  Node: {node_id}")
     print(f"  Version: {version}")
     print(f"  Training time: {training_time:.2f}s")
+    print(f"  Training samples: {len(images)}")
     print(f"  Edge model saved to: {edge_model_path}")
-    print(f"  (Ready for gateway sync)")
+    print(f"  Metadata saved to: {metadata_dir}/edge_{version}.json")
+    print(f"")
+    print(f"  📤 Ready for federated aggregation!")
+    print(f"  Run aggregation script to combine edge models")
     print("="*60)
     
     return True

@@ -22,7 +22,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: inference
-        image: edge-inference:latest
+        image: localhost/edge-inference:latest
         imagePullPolicy: IfNotPresent
         env:
         - name: MODEL_DIR

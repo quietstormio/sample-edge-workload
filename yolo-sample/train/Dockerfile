@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         py-cpuinfo \
         pandas>=1.1.4 \
         seaborn>=0.11.0 \
+        polars \
+        scipy>=1.4.1 \
     # Force install numpy<2 LAST to ensure compatibility
     && pip install --no-cache-dir --force-reinstall "numpy<2" \
     # Remove opencv-python if it was installed

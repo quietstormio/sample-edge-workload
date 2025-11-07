@@ -1,11 +1,14 @@
+# Training CronJob - Suspended for manual triggering only
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: edge-training-job
   namespace: {{ .Release.Namespace }}
 spec:
-  # Run every 3 hours
-  schedule: "0 */3 * * *"
+  # Suspended - only runs when manually triggered
+  suspend: true
+  # Schedule is required but won't be used since suspended=true
+  schedule: "0 0 * * *"
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -21,7 +24,7 @@ spec:
             {{ .Values.monitor.nodeLabelKey }}: online
           containers:
           - name: edge-trainer
-            image: edge-trainer:latest
+            image: localhost/edge-training:latest
             imagePullPolicy: IfNotPresent
             env:
             - name: TRAINING_DIR
@@ -29,11 +32,15 @@ spec:
             - name: MODEL_DIR
               value: "/data/models"
             - name: EPOCHS
-              value: "20"
+              value: "100"
             - name: BATCH_SIZE
-              value: "4"
+              value: "8"
             - name: DEVICE
               value: "cpu"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             volumeMounts:
             - name: shared-data
               mountPath: /data

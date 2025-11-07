@@ -2,10 +2,6 @@
 DEPLOYMENT.md
 CLAUDE.md
 
-# Model files (large - transfer separately)
-yolov8n.pt
-*.pt
-
 # Docker image tars (large)
 *.tar
 *.tar.gz

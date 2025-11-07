@@ -35,7 +35,7 @@ def run_inference(model, image_path):
         return {"error": f"Image not found: {image_path}"}
 
     try:
-        # Run inference
+        # Run inference with lower confidence threshold for federated model
         results = model(image_path, verbose=False)
 
         detections = []

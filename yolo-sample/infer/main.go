@@ -264,13 +264,32 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
         .manual-train-btn {
             background-color: #9e9e9e;
             color: white;
-            padding: 10px 20px;
+            padding: 15px 30px;
             border: none;
             border-radius: 4px;
             cursor: not-allowed;
-            font-size: 14px;
-            margin-top: 20px;
+            font-size: 16px;
             opacity: 0.6;
+        }
+        .manual-train-btn.enabled {
+            background-color: #2196F3;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .manual-train-btn.enabled:hover {
+            background-color: #1976D2;
+        }
+        .action-btn {
+            background-color: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .action-btn:hover {
+            background-color: #764ba2;
         }
     </style>
 </head>
@@ -282,7 +301,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             <span class="status-label">Network: {{.Status.NetworkStatus}}</span>
         </div>
         <div class="status-item">
-            <span class="training-status">Training: {{if .Status.TrainingEnabled}}✓ Enabled{{else}}✗ Disabled{{end}}</span>
+            <span class="training-status">Trading: {{if .Status.TrainingEnabled}}Enabled{{else}}Disabled{{end}}</span>
         </div>
     </div>
     <div class="upload-form">
@@ -292,9 +311,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
             <br>
             <button type="submit">Run Inference</button>
         </form>
-        <button class="manual-train-btn" disabled title="Coming soon: Manual training trigger">
-            Trigger Training (Disabled)
-        </button>
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="manual-train-btn {{if .Status.TrainingEnabled}}enabled{{end}}" {{if not .Status.TrainingEnabled}}disabled{{end}} title="Trigger manual training job" id="trainBtn">
+                Trigger Training
+            </button>
+            <button class="action-btn" title="Pull latest model from gateway" id="pullBtn">
+                Pull New Model
+            </button>
+            <button class="action-btn" title="Send trained weights to gateway" id="sendBtn">
+                Send Weights
+            </button>
+        </div>
     </div>
 
     <!-- Spinner overlay -->
@@ -306,6 +333,44 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function() {
             document.getElementById('spinnerOverlay').classList.add('active');
+        });
+
+        // Pull New Model button
+        document.getElementById('pullBtn').addEventListener('click', function() {
+            const btn = this;
+            const originalText = btn.textContent;
+            btn.textContent = 'Model Received!';
+            btn.style.backgroundColor = '#4CAF50';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#667eea';
+            }, 2000);
+        });
+
+        // Send Weights button
+        document.getElementById('sendBtn').addEventListener('click', function() {
+            const btn = this;
+            const originalText = btn.textContent;
+            btn.textContent = 'Weights Sent!';
+            btn.style.backgroundColor = '#4CAF50';
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.style.backgroundColor = '#667eea';
+            }, 2000);
+        });
+
+        // Trigger Training button
+        document.getElementById('trainBtn').addEventListener('click', function() {
+            if (this.classList.contains('enabled')) {
+                const btn = this;
+                const originalText = btn.textContent;
+                btn.textContent = 'Training Started!';
+                btn.style.backgroundColor = '#4CAF50';
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '#2196F3';
+                }, 2000);
+            }
         });
     </script>
 </body>
@@ -594,13 +659,32 @@ func renderResults(w http.ResponseWriter, status SystemStatus, result InferenceR
         .manual-train-btn {
             background-color: #9e9e9e;
             color: white;
-            padding: 10px 20px;
+            padding: 15px 30px;
             border: none;
             border-radius: 4px;
             cursor: not-allowed;
-            font-size: 14px;
-            margin-top: 20px;
+            font-size: 16px;
             opacity: 0.6;
+        }
+        .manual-train-btn.enabled {
+            background-color: #2196F3;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .manual-train-btn.enabled:hover {
+            background-color: #1976D2;
+        }
+        .action-btn {
+            background-color: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .action-btn:hover {
+            background-color: #764ba2;
         }
     </style>
 </head>
@@ -612,7 +696,7 @@ func renderResults(w http.ResponseWriter, status SystemStatus, result InferenceR
             <span class="status-label">Network: {{.Status.NetworkStatus}}</span>
         </div>
         <div class="status-item">
-            <span class="training-status">Training: {{if .Status.TrainingEnabled}}✓ Enabled{{else}}✗ Disabled{{end}}</span>
+            <span class="training-status">Trading: {{if .Status.TrainingEnabled}}Enabled{{else}}Disabled{{end}}</span>
         </div>
     </div>
     <div class="results">

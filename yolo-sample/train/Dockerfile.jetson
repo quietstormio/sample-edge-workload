@@ -1,0 +1,58 @@
+# Dockerfile for ARM64 with NVIDIA GPU support (Jetson Orin Nano Super)
+# Build on Jetson: podman build -f Dockerfile.jetson -t edge-training:jetson .
+# Requirements: JetPack 6.1+ (67 TOPS performance)
+
+# Use NVIDIA's official Jetson PyTorch image (ARM64 + CUDA pre-installed)
+# This image includes PyTorch 2.0 with CUDA support for Jetson
+FROM nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3
+
+WORKDIR /app
+
+# Install additional system dependencies
+# Note: PyTorch with CUDA is already pre-installed in l4t-pytorch image
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install OpenCV and Ultralytics
+# PyTorch is already installed with CUDA support
+RUN pip install --no-cache-dir opencv-python-headless \
+    # Install ultralytics without dependencies to avoid opencv-python
+    && pip install --no-cache-dir --no-deps ultralytics \
+    # Manually install only required ultralytics dependencies
+    && pip install --no-cache-dir \
+        ultralytics-thop>=2.0.0 \
+        matplotlib>=3.3.0 \
+        pyyaml>=5.3.1 \
+        tqdm>=4.64.0 \
+        psutil \
+        py-cpuinfo \
+        pandas>=1.1.4 \
+        seaborn>=0.11.0 \
+    # Force install numpy<2 LAST to ensure compatibility
+    && pip install --no-cache-dir --force-reinstall "numpy<2" \
+    # Remove opencv-python if it was installed
+    && pip uninstall -y opencv-python || true \
+    # Aggressive cleanup
+    && rm -rf /root/.cache/pip \
+    && find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -type f -name '*.pyc' -delete \
+    && find /usr/local -type f -name '*.pyo' -delete \
+    && find /usr/local -type d -name 'tests' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -type d -name 'test' -exec rm -rf {} + 2>/dev/null || true
+
+# Copy training script and dataset config
+COPY train.py /app/
+COPY dataset.yaml /app/
+
+ENV PYTHONUNBUFFERED=1
+
+# Default config (override with env vars)
+ENV TRAINING_DIR=/data/training
+ENV MODEL_DIR=/data/models
+ENV EPOCHS=20
+ENV BATCH_SIZE=4
+ENV DEVICE=cuda
+
+CMD ["python", "train.py"]
